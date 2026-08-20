@@ -1,0 +1,11 @@
+<resources>
+  <!-- Nothing is ever drawn here. The activity's whole job is the two window
+       flags that turn the screen on and show over the keyguard. -->
+  <style name="Theme.TelecomAndroid.Transparent" parent="android:Theme.Translucent.NoTitleBar">
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowNoTitle">true</item>
+    <item name="android:windowContentOverlay">@null</item>
+    <item name="android:windowAnimationStyle">@null</item>
+  </style>
+</resources>

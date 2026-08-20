@@ -1,0 +1,52 @@
+{
+  "name": "react-native-telecom-android",
+  "version": "0.1.0",
+  "description": "Android VoIP calling for React Native, built on Jetpack core-telecom and CallStyle notifications. Rings from a killed app.",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "source": "src/index.ts",
+  "files": [
+    "src",
+    "lib",
+    "android",
+    "!android/build",
+    "react-native.config.js",
+    "README.md"
+  ],
+  "keywords": [
+    "react-native",
+    "android",
+    "voip",
+    "call",
+    "telecom",
+    "core-telecom",
+    "callstyle",
+    "callkeep",
+    "fcm"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepare": "tsc"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "@react-native-firebase/messaging": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "react": "19.2.3",
+    "react-native": "0.86.2",
+    "typescript": "^5.6.0"
+  },
+  "codegenConfig": {
+    "name": "RNTelecomAndroidSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.telecomandroid"
+    }
+  }
+}

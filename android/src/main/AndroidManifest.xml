@@ -1,0 +1,68 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Self-managed calls. Without this Telecom refuses the phone account and
+       the module falls back to notification-only ringing. -->
+  <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+
+  <!-- Claimed only once media is up, and only when the app already holds the
+       runtime permission. Android 14 kills a background service that touches
+       the mic without declaring it, which on a call means the audio dies the
+       moment the user leaves the app. -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+  <!-- Android 14 turned this into a per-app grant. Without it a ring is a
+       heads-up notification the user has to notice, not a screen. -->
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="android.permission.VIBRATE" />
+  <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+  <uses-permission android:name="android.permission.INTERNET" />
+
+  <!-- Only used by requestBatteryOptimisationExemption(). Play rejects apps
+       that need it without a call/alarm justification; a calling app has one. -->
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+  <application>
+
+    <!-- Owns the call for its whole life: the notification, the ringtone, the
+         ring and answer deadlines, and the Telecom session. -->
+    <service
+      android:name="com.telecomandroid.CallService"
+      android:exported="false"
+      android:foregroundServiceType="phoneCall|microphone|camera" />
+
+    <receiver
+      android:name="com.telecomandroid.CallActionReceiver"
+      android:exported="false" />
+
+    <!-- The full-screen intent target. Transparent: it exists to turn the
+         screen on and get past the keyguard, then hand off to your activity. -->
+    <activity
+      android:name="com.telecomandroid.IncomingCallActivity"
+      android:exported="false"
+      android:launchMode="singleTop"
+      android:excludeFromRecents="true"
+      android:noHistory="true"
+      android:taskAffinity=""
+      android:showWhenLocked="true"
+      android:turnScreenOn="true"
+      android:theme="@style/Theme.TelecomAndroid.Transparent" />
+
+    <!-- Declared without an intent-filter on purpose.
+         Adding one here would race @react-native-firebase/messaging's service
+         for MESSAGING_EVENT, and which one FCM picks would come down to merge
+         order. The README shows the four lines that opt in explicitly. -->
+    <service
+      android:name="com.telecomandroid.TelecomFirebaseMessagingService"
+      android:exported="false"
+      android:directBootAware="false" />
+
+  </application>
+</manifest>

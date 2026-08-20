@@ -1,0 +1,69 @@
+// No buildscript block on purpose.
+//
+// Every React Native app already has AGP, the Kotlin plugin and
+// `com.facebook.react` on its root classpath, and a library that pins its own
+// versions of those ends up loading AGP twice in somebody else's build. The
+// versions here come from the app, which is where they belong.
+
+def safeExtGet(prop, fallback) {
+  rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
+
+apply plugin: "com.android.library"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+android {
+  namespace "com.telecomandroid"
+  compileSdk safeExtGet("compileSdkVersion", 36)
+
+  defaultConfig {
+    // core-telecom needs 26 and is guarded at runtime; everything else — the
+    // foreground service, CallStyle, the full-screen intent — works from 24.
+    minSdk safeExtGet("minSdkVersion", 24)
+    consumerProguardFiles "consumer-rules.pro"
+  }
+
+  buildFeatures {
+    buildConfig true
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  kotlinOptions {
+    jvmTarget = "17"
+  }
+
+  lint {
+    abortOnError false
+  }
+}
+
+repositories {
+  google()
+  mavenCentral()
+}
+
+dependencies {
+  implementation "com.facebook.react:react-android"
+  implementation "androidx.core:core-ktx:${safeExtGet('androidxCoreVersion', '1.15.0')}"
+
+  // The system call integration: audio routing, the in-call state the OS uses
+  // to silence other audio, and the entry in the call log.
+  implementation "androidx.core:core-telecom:${safeExtGet('coreTelecomVersion', '1.0.0')}"
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0"
+
+  // compileOnly: the host app already ships firebase-messaging through
+  // @react-native-firebase/messaging. Pinning a version here would fight the
+  // app's own for no gain — this module only needs the class to compile against.
+  compileOnly "com.google.firebase:firebase-messaging:${safeExtGet('firebaseMessagingVersion', '24.1.0')}"
+}
+
+react {
+  jsRootDir = file("../src/")
+  libraryName = "RNTelecomAndroidSpec"
+  codegenJavaPackageName = "com.telecomandroid"
+}
