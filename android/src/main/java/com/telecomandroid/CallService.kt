@@ -2,6 +2,7 @@ package com.telecomandroid
 
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
+import android.app.ActivityManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -42,6 +43,9 @@ internal class CallService : Service() {
     private var telecom: TelecomSession? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var avatar: Bitmap? = null
+
+    /** Whether the app was on screen when this call arrived. See startIncoming. */
+    private var presentInApp = false
 
     private val ringTimeout = Runnable { end(EndReason.MISSED) }
     private val answerTimeout = Runnable { end(EndReason.FAILED) }
@@ -102,16 +106,25 @@ internal class CallService : Service() {
         }
 
         CallStore.set(call)
-        promote(Notifications.buildIncoming(this, config, call, null), ringingTypes())
 
-        acquireWakeLock(config.ringTimeoutMs, wakeScreen = true)
+        // Read before `promote`, and only here. `startForeground` moves this
+        // process to FOREGROUND_SERVICE importance, so asking afterwards would
+        // report every call as foreground — including one on a locked phone.
+        presentInApp = isAppForeground()
+
+        promote(
+            Notifications.buildIncoming(this, config, call, null, quiet = presentInApp),
+            ringingTypes(),
+        )
+
+        acquireWakeLock(config.ringTimeoutMs, wakeScreen = !presentInApp)
         ringer = Ringer(this).also { it.start(config) }
         startTelecom(call)
 
         handler.postDelayed(ringTimeout, config.ringTimeoutMs)
         loadAvatar(call)
 
-        CallStore.emitIncoming(call)
+        CallStore.emitIncoming(call, presentInApp)
         Logger.d("ringing ${call.callId}")
     }
 
@@ -244,8 +257,24 @@ internal class CallService : Service() {
         val call = CallStore.get() ?: return
         if (call.state != CallState.RINGING) return
 
-        promote(Notifications.buildIncoming(this, config, call, avatar), ringingTypes())
+        promote(
+            Notifications.buildIncoming(this, config, call, avatar, presentInApp),
+            ringingTypes(),
+        )
     }
+
+    /**
+     * Whether this app is the one the user is looking at.
+     *
+     * A static read of our own process — no permission, no iteration. It is the
+     * fact JS would otherwise have to infer from `AppState`, which cannot see a
+     * notification tapped while the app is already open.
+     */
+    private fun isAppForeground(): Boolean = runCatching {
+        val state = ActivityManager.RunningAppProcessInfo()
+        ActivityManager.getMyMemoryState(state)
+        state.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+    }.getOrDefault(false)
 
     private fun startTelecom(call: CallRecord) {
         telecom = TelecomSession(this).also { session ->
@@ -306,7 +335,7 @@ internal class CallService : Service() {
 
                 avatar = bitmap
                 val notification = if (current.state == CallState.RINGING) {
-                    Notifications.buildIncoming(this, config, current, bitmap)
+                    Notifications.buildIncoming(this, config, current, bitmap, presentInApp)
                 } else {
                     Notifications.buildOngoing(this, config, current, bitmap)
                 }

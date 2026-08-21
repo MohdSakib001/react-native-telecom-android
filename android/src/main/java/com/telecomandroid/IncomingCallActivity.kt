@@ -55,6 +55,10 @@ internal class IncomingCallActivity : Activity() {
     }
 
     private fun forwardToApp(source: Intent) {
+        // Every arrival at a call passes through here: the full-screen intent, a
+        // tap on the notification, and the launch after answering.
+        source.getStringExtra(CallRecord.EXTRA_CALL_ID)?.let { CallStore.emitPresented(it) }
+
         val launch = launchIntent(this, source.extras)
         if (launch == null) {
             Logger.e("no launcher activity found — cannot show the call")

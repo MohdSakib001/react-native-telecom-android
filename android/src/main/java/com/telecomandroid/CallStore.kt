@@ -57,7 +57,23 @@ internal object CallStore {
             .onFailure { Logger.w("failed to emit $type", it) }
     }
 
-    fun emitIncoming(call: CallRecord) = emit("incoming") { put("call", call.toJson()) }
+    /**
+     * `presentInApp` is native answering the one question JS cannot: was the app
+     * on screen when this call arrived? If it was, the app draws the ring and
+     * the notification stays quiet; if it was not, the notification is the ring.
+     * Decided once, here, because this is the only layer that can see it.
+     */
+    fun emitIncoming(call: CallRecord, presentInApp: Boolean) = emit("incoming") {
+        put("call", call.toJson())
+        put("presentInApp", presentInApp)
+    }
+
+    /**
+     * The user arrived at the call — the full-screen intent fired, or they
+     * tapped the notification. Emitted from the one activity every arrival
+     * passes through, so JS never has to infer it from app state.
+     */
+    fun emitPresented(callId: String) = emit("presented") { put("callId", callId) }
 
     fun emitAnswer(call: CallRecord) = emit("answer") {
         put("callId", call.callId)

@@ -126,8 +126,19 @@ export type CurrentCall = {
 };
 
 export type TelecomEvent =
-  /** A push arrived and the phone is now ringing. Not fired on a cold start. */
-  | { type: 'incoming'; call: CurrentCall }
+  /**
+   * A push arrived and the phone is now ringing. Not fired on a cold start.
+   *
+   * `presentInApp` is true when your app was on screen as the call arrived, so
+   * the notification stayed quiet and drew neither a heads-up nor a full-screen
+   * intent — show your own ring UI. When false, the notification is the ring.
+   */
+  | { type: 'incoming'; call: CurrentCall; presentInApp: boolean }
+  /**
+   * The user arrived at the call: the full-screen intent fired, or they tapped
+   * the notification. Show your ring UI now if you did not already.
+   */
+  | { type: 'presented'; callId: string }
   /** The user answered — from the notification, the lock screen, or a headset. */
   | { type: 'answer'; callId: string; call: CurrentCall }
   | { type: 'decline'; callId: string }

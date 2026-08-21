@@ -80,11 +80,17 @@ internal object Notifications {
         manager.createNotificationChannel(ongoing)
     }
 
+    /**
+     * `quiet` is for a call arriving while the app is already on screen: the app
+     * is drawing its own ring, so this one keeps the service alive and fills the
+     * shade without peeking over it or seizing the screen.
+     */
     fun buildIncoming(
         context: Context,
         config: TelecomConfig,
         call: CallRecord,
         avatar: Bitmap?,
+        quiet: Boolean = false,
     ): Notification {
         val person = person(call, avatar)
 
@@ -93,7 +99,6 @@ internal object Notifications {
             .setContentText(
                 if (call.isVideo) "Incoming video call" else "Incoming call"
             )
-            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setStyle(
                 NotificationCompat.CallStyle.forIncomingCall(
                     person,
@@ -101,10 +106,6 @@ internal object Notifications {
                     action(context, CallActionReceiver.ACTION_ANSWER, call.callId, REQ_ANSWER),
                 ),
             )
-            // The `true` is the important half: it tells Android to launch the
-            // activity even when the screen is on, instead of quietly demoting
-            // the ring to a heads-up banner.
-            .setFullScreenIntent(fullScreenIntent(context, call), true)
             // Android exempts a CallStyle notification owned by a phoneCall
             // foreground service from being dismissed. Several OEMs ignore that,
             // and a swiped-away ring leaves the phone ringing with no controls.
@@ -112,6 +113,17 @@ internal object Notifications {
                 action(context, CallActionReceiver.ACTION_REDISPLAY, call.callId, REQ_REDISPLAY),
             )
             .setTimeoutAfter(config.ringTimeoutMs)
+            .apply {
+                if (quiet) {
+                    setPriority(NotificationCompat.PRIORITY_DEFAULT).setSilent(true)
+                } else {
+                    // The `true` is the important half: it tells Android to
+                    // launch the activity even when the screen is on, instead of
+                    // quietly demoting the ring to a heads-up banner.
+                    setPriority(NotificationCompat.PRIORITY_MAX)
+                        .setFullScreenIntent(fullScreenIntent(context, call), true)
+                }
+            }
             .build()
     }
 
